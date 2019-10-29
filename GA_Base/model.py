@@ -33,7 +33,7 @@ class Model_FF(nn.Module):
         x = x.view((1, self.state_size))
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        return F.relu(self.fc3(x)), hidden_treshold
+        return torch.tanh(self.fc3(x)), hidden_treshold
 
 
 class Model_LSTM(nn.Module):
@@ -56,5 +56,5 @@ class Model_LSTM(nn.Module):
         x, hidden_out = self.lstm(x, hidden)
         x = torch.relu(x)
         #if self.action_type == gym.spaces.box.Box
-        action = self.fc2(x).squeeze(0)
-        return action, hidden_out
+        mu = torch.tanh(self.fc2(x)).squeeze(0)
+        return mu, hidden_out
