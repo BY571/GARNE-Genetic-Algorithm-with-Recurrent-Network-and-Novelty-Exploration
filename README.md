@@ -38,5 +38,6 @@ Flags:
 
 
 #### Baseline convergence proof:
+Note that the sampled action is clipped between -1 and 1. For environments like Pendulum adapt the action sampling with: multiplying with env.action_space.high and change clipping range to [-env.action_space.high,env.action_space.high]
 ![baseline_proof](/imgs/GA_Baseline_proof.png)
 
