@@ -38,5 +38,5 @@ Flags:
 
 
 #### Baseline convergence proof:
-![baseline_proof](\imgs\GA_Baseline_proof.png)
+![baseline_proof](/imgs/GA_Baseline_proof.png)
 
