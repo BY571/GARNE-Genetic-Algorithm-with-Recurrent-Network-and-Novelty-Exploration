@@ -2,6 +2,7 @@ import gym
 from GA_Base import model 
 import torch
 import torch.nn as nn
+from torch.distributions import Normal
 import copy
 import numpy as np
 from collections import deque, namedtuple
@@ -21,10 +22,12 @@ def evaluate(env, net):
     while True:
         hidden_in = hidden_out
         state = torch.from_numpy(state).unsqueeze(0).float()
-        action, hidden_out = net(state, hidden_in)
+        mu, hidden_out = net(state, hidden_in)
+        dist = Normal(loc=mu, scale=0.1)
+        action = dist.sample()
         action = action.detach().numpy()
-        action = np.clip(action, 100, 5000)
-
+        action = np.clip(action, -1, -1)
+    
         next_state, reward, done, _ = env.step(action[0])
         reward_sum += reward
         steps_count  += 1
@@ -126,9 +129,11 @@ def test_run(env, model_type, hidden_size,action_type, seeds, noise_std, render 
         if render:
             env.render()
         state = torch.from_numpy(state).float()
-        action, hidden_out = net(state, hidden_in)
+        mu, hidden_out = net(state, hidden_in)
+        dist = Normal(loc=mu, scale=0.1)
+        action = dist.sample()
         action = action.detach().numpy()
-        action = np.clip(action, 100, 5000)
+        action = np.clip(action, -1, 1)
 
         state, reward, done, info = env.step(action[0])
         if done:
