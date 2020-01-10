@@ -4,7 +4,7 @@ In this folder a Genetic Algorithm is implemented with several add-ons that can 
 Basline simple GA for continuous control tasks.
 __________________
 #### Add-ons
-- using LSTM layer or 1D-CNN **(only for Damper35-v0 environment!)**
+- using LSTM layer or 1D-CNN 
 - adding novelty search to the Algorithm
 - adding a crossover method to the mutation (two methods to choose from!)
 
@@ -54,7 +54,7 @@ If tensorboard is not opening, try with local host flag:
 
 
 ### Performance of GA with different Network Types:
-Perfomance tested on the Damper-v1 Environment
+Perfomance of the three different neural network types tested 
 ![ff](imgs/GA_with_different_neural_network_types.png)
 
 
