@@ -4,7 +4,7 @@ In this folder a Genetic Algorithm is implemented with several add-ons that can 
 Basline simple GA for continuous control tasks.
 __________________
 #### Add-ons
-- using LSTM layer 
+- using LSTM layer or 1D-CNN **(only for Damper35-v0 environment!)**
 - adding novelty search to the Algorithm
 - adding a crossover method to the mutation (two methods to choose from!)
 
@@ -25,7 +25,7 @@ Flags:
 
 `-ls`  : "Layer size, number of nodes per layer. Default is 10"
 
-`-network`   : "Network type, feed forward (ff) or long-short-term-memory (lstm). Default is ff"
+`-network`   : "Network type, feed forward (ff), convolutional neural network (cnn) or long-short-term-memory (lstm). Default is ff"
 
 `-std`  : "Noise that is added to the networks weight as mutation. Default is 3 (Damper specific. usually around 0.01-0.001)"
 
@@ -35,9 +35,31 @@ Flags:
 
 `-worker_count`   : "Numbers of worker that gather training data. Default is 10"
 
+`-render`   : "Rendering the current environment - works only for Damper-v1. default is False"
+
+`-save_model` : "Saving the best model after training in the current directory"
+
+`--save_every` : "Saving the best Performer after X generations, default is 10"
+
+
+**Example**: `python GARNE.py -env Damper-v1 -g 50 -ps 128 -pc 8 -render True`
+
+__________________
+Outputs can be monitored with tensorboard:
+`tensorboard --logdir=runs`
+
+
+If tensorboard is not opening, try with local host flag: 
+`tensorboard --logdir=runs --host localhost`
+
+
+### Performance of GA with different Network Types:
+Perfomance tested on the Damper-v1 Environment
+![ff](imgs/GA_with_different_neural_network_types.png)
 
 
 #### Baseline convergence proof:
-Note that the sampled action is clipped between -1 and 1. For environments like Pendulum adapt the action sampling with: multiplying with env.action_space.high and change clipping range to [-env.action_space.high,env.action_space.high]
-![baseline_proof](/imgs/GA_Baseline_proof.png)
+Baseline algorithm was trained on the Cartpole environment to proof convergence. Algorithm solved the environment in 4 Generations!
+
+![baseline_proof](imgs/GA_Baseline_proof.png)
 

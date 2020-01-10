@@ -16,35 +16,36 @@ import multiprocessing as mp
 from tensorboardX import SummaryWriter
 from collections import deque, namedtuple
 import argparse
+import time
+import matplotlib.pyplot as plt
+import torch
 
-
-NOISE_STD = 3 
-POPULATION_SIZE = 1001
-PARENTS_COUNT = 20
-WORKERS_COUNT = 10
 HIDDEN_SIZE = 10
 K_NEIGHBORS = 25
-CROSSOVER_METHOD = 2   # choose between 1 and 2 --- METHOD 1 is slicing the parents seeds in the middle and combining. 
-                                                  # METHOD 2 is randomly picking one seed from either parent1 or parent2 for all seeds 
-
-
+RENDER_EVERY = 10 
 OutputItem = namedtuple('OutputItem', field_names=["seeds", "reward", "steps", "bc"])
 
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="")
+    parser.add_argument("-info", type=str, help="Information or name of the run")
     parser.add_argument("-env", type=str, default="Damper-v0", help="The environment you want to train the algorithm. Default is Damper-v0")
     parser.add_argument("-ps", "--Population_size", type=int, default=1001, help="Population size. Default is: 1001")
     parser.add_argument("-pc", "--Parent_count", type=int, default=20, help="Number of top performer of the population that build the new population. Default is: 20")
     parser.add_argument("-g", "--Generation_max", type=int, default=20, help="Maximum number of generations. Default is: 20")
     parser.add_argument("-ls", "--layer_size", type=int, default=10, help="The size of the neural network layer size. Default is: 10")
-    parser.add_argument("-network", type=str, choices=["ff","lstm"], default="ff", help="Type of the neural network. User can choose between feed forward (ff) and long-short-term-memory (lstm) network. Default is ff.")
-    parser.add_argument("-std", "--mutation_std", type=int, default=3, help="The noise that is added to the network weights as a mutation. Default is 3")
+    parser.add_argument("-network", type=str, choices=["ff", "cnn", "lstm"], default="ff", help="Type of the neural network. User can choose between feed forward (ff), one dimensional convolutional network (cnn) and long-short-term-memory (lstm) network. Default is ff.")
+    parser.add_argument("-std", "--mutation_std", type=float, default=0.1, help="The noise that is added to the network weights as a mutation. Default is 3")
     parser.add_argument("-novelty", type=bool, default=False, help="Adds novelty search to the algorithm. Default is: False \n If choosen, be aware to adapt K_NEIGHBORS value and the behavior characterization (bc in GA_Addon/base.py) depending on the task!")
     parser.add_argument("-crossover", type=int, choices=range(0, 3), default=0, help="Adds crossover to the creation process of the new population. The user has two crossover methods to choose from: \nMethod 1:  Slices the seeds of both parents in the middle and combines them. keyword argument: 1 \nMethod 2: For each seed in seed_index of both parents. Pick one for the child with a 50/50 prob. keyword argument 2. Default is 0 - No crossover!")
     parser.add_argument("--worker_count", type=int, default=10, help="Numbers of worker that gather training data")
+    parser.add_argument("-render", type=bool, default=False, help="Renders the environment to observ the training")
+    parser.add_argument("-save_model", type=str, default="no_saving", help="Saving the best model after training in the current directory")
+    parser.add_argument("--save_every", type=int, default=10, help="Saving the best Performer after X generations, default is 10")
     args = parser.parse_args()
+    
+    start_time = time.time()
     
     # Parse Arguments
     env_name = args.env
@@ -57,6 +58,8 @@ if __name__ == "__main__":
     NOVELTY_USE = args.novelty 
     CROSSOVER_METHOD = args.crossover
     WORKERS_COUNT = args.worker_count
+    RENDER = args.render
+    save_every = args.save_every
     
     K_NEIGHBORS = 25
     SEEDS_PER_WORKER = POPULATION_SIZE // WORKERS_COUNT
@@ -66,7 +69,10 @@ if __name__ == "__main__":
     
     env = gym.make(env_name)
     action_type = type(env.action_space)
-    writer = SummaryWriter()
+    if args.info:
+        writer = SummaryWriter("runs/"+args.info)
+    else: 
+        writer = SummaryWriter()
     # create to store behavior characterization
     archive = []
     reward_buffer = deque(maxlen=15)  # buffer to store the reward gradients to see if rewards stay constant over a defined time horizont ~> local min
@@ -91,7 +97,11 @@ if __name__ == "__main__":
         queue_in.put(seeds)
     
     print("All running!")
-    gen_idx = 0
+    
+    overall_best_performer = None
+    overall_best_score = - np.inf
+
+
     elite = None
     overall_steps = 0
     for gen in range(max_generation):
@@ -133,7 +143,16 @@ if __name__ == "__main__":
         # set top performer as new elite
         elite = population[0]
         
-        base.test_run(env=env, model_type=model_type, hidden_size=HIDDEN_SIZE,action_type=action_type, seeds=elite[0], noise_std=NOISE_STD, render = False)
+        #save overall best performer
+        if elite[1] > overall_best_score:
+            overall_best_performer = elite[0]
+        
+        
+        if gen % RENDER_EVERY == 0:
+            base.test_run(env=env, model_type=model_type, hidden_size=HIDDEN_SIZE,action_type=action_type, seeds=elite[0], noise_std=NOISE_STD, render = RENDER)
+            plt.close()
+        else:
+            base.test_run(env=env, model_type=model_type, hidden_size=HIDDEN_SIZE,action_type=action_type, seeds=elite[0], noise_std=NOISE_STD, render = False)
         
         # monitoring 
         reward_mean = np.mean(reward)
@@ -183,8 +202,13 @@ if __name__ == "__main__":
                 seeds.append(tuple(parent_seeds + [next_seed]))
                 
             worker_queue.put(seeds)
-        gen_idx += 1
-        print("\rGeneration: {} | Steps: {} mio | Mean_Reward: {:.2f}  ".format(gen_idx, overall_steps/1e6, reward_mean), end = "", flush = True)
+
+        print("\rGeneration: {} | Steps: {} mio | Mean_Reward: {:.2f}  ".format(gen, overall_steps/1e6, reward_mean), end = "", flush = True)
+        if gen % save_every == 0:
+            seeds = elite[0]
+            network = base.build_net(env=env, seeds=seeds, model_type=model_type, hidden_size=HIDDEN_SIZE, noise_std=NOISE_STD, action_type=action_type)
+            torch.save(network.state_dict(), "Gen"+str(gen)+".pt")
+            
         
         #if reward_mean > -250:
         #     print("\nSolved the environment in {} generations".format(gen_idx))
@@ -193,4 +217,16 @@ if __name__ == "__main__":
     for worker in workers:
         worker.join()
     
+    
+    ## save the last elite network as output agent:
+    if args.save_model != "no_saving":
+        
+        network = base.build_net(env=env, seeds=overall_best_performer, model_type=model_type, hidden_size=HIDDEN_SIZE, noise_std=NOISE_STD, action_type=action_type)
+        torch.save(network.state_dict(), args.save_model+".pt")
+        
+        
     env.close()
+    end_time = time.time()
+    print("Training took: {} min".format((end_time-start_time)/60))
+
+    
