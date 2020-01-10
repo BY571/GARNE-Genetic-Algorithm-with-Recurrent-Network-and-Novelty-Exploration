@@ -2,7 +2,6 @@ import gym
 from GA_Base import model 
 import torch
 import torch.nn as nn
-from torch.distributions import Normal
 import copy
 import numpy as np
 from collections import deque, namedtuple
@@ -22,12 +21,10 @@ def evaluate(env, net):
     while True:
         hidden_in = hidden_out
         state = torch.from_numpy(state).unsqueeze(0).float()
-        mu, hidden_out = net(state, hidden_in)
-        dist = Normal(loc=mu, scale=0.1)
-        action = dist.sample()
+        action, hidden_out = net(state, hidden_in)
         action = action.detach().numpy()
-        action = np.clip(action, -1, -1)
-    
+        action = np.clip(action*env.action_space.high[0], env.action_space.low[0], env.action_space.high[0])
+
         next_state, reward, done, _ = env.step(action[0])
         reward_sum += reward
         steps_count  += 1
@@ -66,6 +63,8 @@ def build_net(env, seeds, model_type, hidden_size, noise_std, action_type):
         action_space = env.action_space.n
     if model_type == "ff":
         net = model.Model_FF(env.observation_space.shape[0], action_space, hidden_size, action_type)
+    elif model_type == "cnn":
+        net = model.Model_CNN1D(env.observation_space.shape[0], action_space, hidden_size)
     else:
         net = model.Model_LSTM(env.observation_space.shape[0], action_space, hidden_size, action_type)
     for seed in seeds[1:]:
@@ -124,16 +123,17 @@ def test_run(env, model_type, hidden_size,action_type, seeds, noise_std, render 
     net = build_net(env, seeds, model_type, hidden_size, noise_std,action_type)
     hidden_out = (torch.zeros((1, 1, hidden_size), dtype=torch.float),torch.zeros((1, 1, hidden_size), dtype=torch.float))
     state = env.reset()
-    while True:
+ 
+    for step in range(2000):
         hidden_in = hidden_out
-        if render:
-            env.render()
+        if step % 5 == 0:
+            if render:
+                env.render()
+        
         state = torch.from_numpy(state).float()
-        mu, hidden_out = net(state, hidden_in)
-        dist = Normal(loc=mu, scale=0.1)
-        action = dist.sample()
+        action, hidden_out = net(state, hidden_in)
         action = action.detach().numpy()
-        action = np.clip(action, -1, 1)
+        action = np.clip(action*env.action_space.high[0], env.action_space.low[0], env.action_space.high[0])
 
         state, reward, done, info = env.step(action[0])
         if done:

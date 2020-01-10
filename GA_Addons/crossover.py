@@ -1,4 +1,4 @@
-import random 
+import random
 
 ### Crossover with two different methods
 
