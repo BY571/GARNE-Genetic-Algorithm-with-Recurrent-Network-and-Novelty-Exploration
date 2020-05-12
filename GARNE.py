@@ -29,12 +29,12 @@ OutputItem = namedtuple('OutputItem', field_names=["seeds", "reward", "steps", "
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="")
-    parser.add_argument("-info", type=str, help="Information or name of the run")
-    parser.add_argument("-env", type=str, default="Damper-v0", help="The environment you want to train the algorithm. Default is Damper-v0")
-    parser.add_argument("-ps", "--Population_size", type=int, default=1001, help="Population size. Default is: 1001")
-    parser.add_argument("-pc", "--Parent_count", type=int, default=20, help="Number of top performer of the population that build the new population. Default is: 20")
-    parser.add_argument("-g", "--Generation_max", type=int, default=20, help="Maximum number of generations. Default is: 20")
-    parser.add_argument("-ls", "--layer_size", type=int, default=10, help="The size of the neural network layer size. Default is: 10")
+    parser.add_argument("-info", type=str, help="Information or name of the run")   
+    parser.add_argument("-env", type=str, default="Pendulum-v0", help="The environment you want to train the algorithm. Default is Pendulum-v0")
+    parser.add_argument("-ps", "--Population_size", type=int, default=500, help="Population size. Default is: 500")
+    parser.add_argument("-pc", "--Parent_count", type=int, default=10, help="Number of top performer of the population that build the new population. Default is: 10")
+    parser.add_argument("-g", "--Generation_max", type=int, default=200, help="Maximum number of generations. Default is: 200")
+    parser.add_argument("-ls", "--layer_size", type=int, default=64, help="The size of the neural network layer size. Default is: 64")
     parser.add_argument("-network", type=str, choices=["ff", "cnn", "lstm"], default="ff", help="Type of the neural network. User can choose between feed forward (ff), one dimensional convolutional network (cnn) and long-short-term-memory (lstm) network. Default is ff.")
     parser.add_argument("-std", "--mutation_std", type=float, default=0.1, help="The noise that is added to the network weights as a mutation. Default is 3")
     parser.add_argument("-novelty", type=bool, default=False, help="Adds novelty search to the algorithm. Default is: False \n If choosen, be aware to adapt K_NEIGHBORS value and the behavior characterization (bc in GA_Addon/base.py) depending on the task!")
@@ -61,7 +61,7 @@ if __name__ == "__main__":
     RENDER = args.render
     save_every = args.save_every
     
-    K_NEIGHBORS = 25
+    K_NEIGHBORS = 25 # for novelty calculation
     SEEDS_PER_WORKER = POPULATION_SIZE // WORKERS_COUNT
     MAX_SEED = 2**31
     ARCHIVE_PROB = 0.01   # Probability that a behavior characterization gets added to the archive
@@ -104,7 +104,7 @@ if __name__ == "__main__":
 
     elite = None
     overall_steps = 0
-    for gen in range(max_generation):
+    for gen in range(1,max_generation+1):
         #batch_step = 0
         population = []
         bc_storage = []

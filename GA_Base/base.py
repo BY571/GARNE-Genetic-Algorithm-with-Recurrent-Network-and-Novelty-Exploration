@@ -22,8 +22,6 @@ def evaluate(env, net):
         hidden_in = hidden_out
         state = torch.from_numpy(state).unsqueeze(0).float()
         action, hidden_out = net(state, hidden_in)
-        action = action.detach().numpy()
-        action = np.clip(action*env.action_space.high[0], env.action_space.low[0], env.action_space.high[0])
 
         next_state, reward, done, _ = env.step(action[0])
         reward_sum += reward
@@ -132,9 +130,6 @@ def test_run(env, model_type, hidden_size,action_type, seeds, noise_std, render 
         
         state = torch.from_numpy(state).float()
         action, hidden_out = net(state, hidden_in)
-        action = action.detach().numpy()
-        action = np.clip(action*env.action_space.high[0], env.action_space.low[0], env.action_space.high[0])
-
         state, reward, done, info = env.step(action[0])
         if done:
             plt.close()

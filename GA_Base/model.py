@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.distributions import Normal, Categorical
+import gym
 
 def weights_init(layers):
     """
@@ -20,20 +22,37 @@ class Model_FF(nn.Module):
         super(Model_FF, self).__init__()
         self.state_size = state_size
         self.hidden_size = hidden_size
+        if action_type == gym.spaces.box.Box:
+    	    self.action_type = "conti" 
+        else:
+            self.action_type = "discr"
         self.fc1 = nn.Linear(state_size, hidden_size)
         self.fc2 = nn.Linear(hidden_size, hidden_size)
         self.fc3 = nn.Linear(hidden_size, action_size)
         
         self.all_layer = [self.fc1, self.fc2, self.fc3]
-        weights_init(self.all_layer)
+        #weights_init(self.all_layer)
     
 
     def forward(self, x, hidden_threshold):
-        #x = torch.abs(x)
-        x = x.view((1, self.state_size))
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        return F.relu(self.fc3(x)), hidden_threshold
+        if self.action_type == "conti":
+            x = x.view((1, self.state_size))
+            x = torch.tanh(self.fc1(x))
+            x = torch.tanh(self.fc2(x))
+            x = torch.tanh(self.fc3(x))
+            dist = Normal(x, scale=torch.FloatTensor([0.1]))
+            action = dist.sample()
+            action = torch.clamp(action, min=-1, max=1)
+            return action.detach().numpy(), hidden_threshold
+            
+        else:
+            x = x.view((1, self.state_size))
+            x = F.relu(self.fc1(x))
+            x = F.relu(self.fc2(x))
+            x = F.softmax(self.fc3(x), dim=-1)
+            dist = Categorical(x)
+            action = dist.sample()
+            return action.detach().numpy(), hidden_threshold
 
 
 class Model_LSTM(nn.Module):
@@ -42,6 +61,10 @@ class Model_LSTM(nn.Module):
         self.action_type = action_type
         self.hidden_size = hidden_size
         self.state_size = state_size
+        if action_type == gym.spaces.box.Box:
+    	    self.action_type = "conti" 
+        else:
+            self.action_type = "discr"
         self.fc1 = nn.Linear(state_size, hidden_size)
         self.lstm = nn.LSTM(hidden_size, hidden_size)
         self.fc2 = nn.Linear(hidden_size, action_size)
@@ -50,14 +73,27 @@ class Model_LSTM(nn.Module):
 
 
     def forward(self, x, hidden):
-        x = x.view((1,self.state_size))        
-        x = torch.relu(self.fc1(x))
-        x = x.view(-1, 1, self.hidden_size)
-        x, hidden_out = self.lstm(x, hidden)
-        x = torch.relu(x)
-        #if self.action_type == gym.spaces.box.Box
-        action = self.fc2(x).squeeze(0)
-        return action, hidden_out
+        if self.action_type == "conti":
+            x = x.view((1,self.state_size))        
+            x = torch.tanh(self.fc1(x))
+            x = x.view(-1, 1, self.hidden_size)
+            x, hidden_out = self.lstm(x, hidden)
+            x = torch.tanh(self.fc2(x)).squeeze(0)
+            dist = Normal(x, scale=torch.FloatTensor([0.1]))
+            action = dist.sample()
+            action = torch.clamp(action, min=-1, max=1)
+            return action.detach().numpy(), hidden_out
+
+        else:
+            x = x.view((1,self.state_size))        
+            x = torch.relu(self.fc1(x))
+            x = x.view(-1, 1, self.hidden_size)
+            x, hidden_out = self.lstm(x, hidden)
+            x = torch.relu(x)
+            x = F.softmax(self.fc2(x).squeeze(0),dim=-1)
+            dist = Categorical(x)
+            action = dist.sample()
+            return action.detach().numpy(), hidden_out
     
     
 class Model_CNN1D(nn.Module):
