@@ -210,10 +210,6 @@ if __name__ == "__main__":
             torch.save(network.state_dict(), "Gen"+str(gen)+".pt")
             
         
-        #if reward_mean > -250:
-        #     print("\nSolved the environment in {} generations".format(gen_idx))
-        #     break
-        
     for worker in workers:
         worker.join()
     
