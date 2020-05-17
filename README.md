@@ -27,7 +27,7 @@ Flags:
 
 `-network`   : "Network type, feed forward (ff), convolutional neural network (cnn) or long-short-term-memory (lstm). Default is ff"
 
-`-std`  : "Noise that is added to the networks weight as mutation. Default is 3 (Damper specific. usually around 0.01-0.001)"
+`-std`  : "Noise that is added to the networks weight as mutation. Default is 0.1"
 
 `-novelty`   :"Adds novelty to the algorithm. Default is: False. If choosen, be aware to adapt K_NEIGHBORS value and the behavior characterization (bc in GA_Addon/base.py) depending on the task/environment!"
 
@@ -35,14 +35,13 @@ Flags:
 
 `-worker_count`   : "Numbers of worker that gather training data. Default is 10"
 
-`-render`   : "Rendering the current environment - works only for Damper-v1. default is False"
 
 `-save_model` : "Saving the best model after training in the current directory"
 
 `--save_every` : "Saving the best Performer after X generations, default is 10"
 
 
-**Example**: `python GARNE.py -env Damper-v1 -g 50 -ps 128 -pc 8 -render True`
+**Example**: `python GARNE.py -env CartPole-v0 -g 15 `
 
 __________________
 Outputs can be monitored with tensorboard:
@@ -58,8 +57,10 @@ Perfomance of the three different neural network types tested
 ![ff](imgs/GA_with_different_neural_network_types.png)
 
 
-#### Baseline convergence proof:
-Baseline algorithm was trained on the Cartpole environment to proof convergence. Algorithm solved the environment in 4 Generations!
+#### Performance for CartPole ENV:
 
-![baseline_proof](imgs/GA_Baseline_proof.png)
+![baseline_proof](imgs/GA_5_seeds_run_CartPole.png)
 
+#### Performance for LunarLander ENV:
+
+![baseline_proof](imgs/GA_5_seeds_run_LunarLander.png)
