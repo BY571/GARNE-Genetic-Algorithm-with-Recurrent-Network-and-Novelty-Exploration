@@ -4,7 +4,7 @@ In this folder a Genetic Algorithm is implemented with several add-ons that can 
 Basline simple GA for continuous control tasks.
 __________________
 #### Add-ons
-- using LSTM layer or 1D-CNN 
+- using LSTM layer (1D-CNN) 
 - adding novelty search to the Algorithm
 - adding a crossover method to the mutation (two methods to choose from!)
 
